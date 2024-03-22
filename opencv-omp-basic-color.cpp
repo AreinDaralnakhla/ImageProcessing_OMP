@@ -5,26 +5,37 @@
 
 using namespace std;
 
+void average( const cv::Mat_<cv::Vec3b>& source, cv::Mat_<cv::Vec3b>& destination, int k )
+{
+  int k2 = k/2;
+#pragma omp parallel for
+  for (int i=k2;i<source.rows-k2;i++)
+    for (int j=k2;j<source.cols-k2;j++)
+      for (int c=0;c<3;c++)
+        {
+          unsigned int temp = 0;
+          for (int ii=-k2;ii<=k2;ii++)
+            for (int jj=-k2;jj<=k2;jj++)
+              temp += source(i+ii,j+jj)[c];
+
+          destination(i,j)[c] = temp/(k*k);
+        }
+}
+
 int main( int argc, char** argv )
 {
 
   cv::Mat_<cv::Vec3b> source = cv::imread ( argv[1], cv::IMREAD_COLOR);
   cv::Mat_<cv::Vec3b> destination ( source.rows, source.cols );
-
   cv::imshow("Source Image", source );
 
   auto begin = chrono::high_resolution_clock::now();
-  const int iter = 500;
+  const int iter = 1;
 
+  int k  = atoi(argv[2]);
   for (int it=0;it<iter;it++)
     {
-	 #pragma omp parallel for
-      for (int i=0;i<source.rows;i++)
-	      for (int j=0;j<source.cols;j++)
-          for (int c=0;c<3;c++)
-            {
-	            destination(i,j)[c] = 255.0*cos((255-source(i,j)[c])/255.0);
-            }
+      average( source, destination, k );
     }
 
   auto end = std::chrono::high_resolution_clock::now();
